@@ -1,3 +1,4 @@
+create database raktadata;
 
 create type user_role as ENUM (
 'CUSTOMER',
@@ -134,7 +135,7 @@ request_id serial primary key,
 customer_id int not null,
 blood_group blood_group_type not null,
 component_type component_type not null,
-quantity decimal(5,2) not null,
+quantity decimal(5,2) not null, 
 urgency urgency_type not null default 'NORMAL',
 request_date timestamp not null default current_timestamp,
 status request_status not null default 'PENDING',
