@@ -1,6 +1,6 @@
 -- Triggers for Blood Bank Management System
 
--- Trigger to update donor eligibility after a donation is made
+--1  Trigger to update donor eligibility after a donation is made
 CREATE OR REPLACE FUNCTION fn_update_donor_eligibility()
 RETURNS TRIGGER AS $$
 BEGIN

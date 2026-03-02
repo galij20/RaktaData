@@ -1,4 +1,4 @@
---procedure for approving blood requests by admin
+--1) procedure for approving blood requests by admin
 CREATE OR REPLACE PROCEDURE approve_blood_request(
     p_request_id  INT,
     p_admin_id    INT
@@ -6,106 +6,65 @@ CREATE OR REPLACE PROCEDURE approve_blood_request(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    -- Request details
     v_blood_group     blood_group_type;
     v_component_type  component_type;
-    v_quantity        DECIMAL(5,2);
+    v_quantity_needed DECIMAL(5,2);
     v_request_status  request_status;
-
-    -- Stock details
     v_total_available DECIMAL(5,2);
-    v_stock_id        INT;
+    v_batch           RECORD;
+    v_take            DECIMAL(5,2);
 BEGIN
-    -- ─── Step 1: Get request details ───
-    SELECT
-        blood_group,
-        component_type,
-        quantity,
-        status
-    INTO
-        v_blood_group,
-        v_component_type,
-        v_quantity,
-        v_request_status
-    FROM blood_request
-    WHERE request_id = p_request_id;
+    -- Get request details
+    SELECT blood_group, component_type, quantity, status
+    INTO v_blood_group, v_component_type, v_quantity_needed, v_request_status
+    FROM blood_request WHERE request_id = p_request_id;
 
-    -- ─── Step 2: Check request exists ───
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Request ID % not found', p_request_id;
-    END IF;
+    -- Basic validation
+    IF NOT FOUND THEN RAISE EXCEPTION 'Request not found'; END IF;
+    IF v_request_status != 'PENDING' THEN RAISE EXCEPTION 'Request already processed'; END IF;
 
-    -- ─── Step 3: Check request is still PENDING ───
-    -- Another admin might have already handled it
-    IF v_request_status != 'PENDING' THEN
-        RAISE EXCEPTION 'Request ID % is already %',
-            p_request_id, v_request_status;
-    END IF;
-
-    -- ─── Step 4: Check total available stock ───
-    SELECT COALESCE(SUM(available_units), 0)
-    INTO v_total_available
+    -- Check if total sum across all batches is enough
+    SELECT COALESCE(SUM(available_units), 0) INTO v_total_available
     FROM blood_stock
-    WHERE blood_group = v_blood_group
-    AND component_type = v_component_type;
+    WHERE blood_group = v_blood_group AND component_type = v_component_type;
 
-    -- ─── Step 5: Reject if insufficient stock ───
-    IF v_total_available < v_quantity THEN
-        UPDATE blood_request
-        SET
-            status          = 'REJECTED',
-            rejected_reason = 'Stock depleted during processing'
+    IF v_total_available < v_quantity_needed THEN
+        UPDATE blood_request SET status = 'REJECTED', rejected_reason = 'Insufficient stock'
         WHERE request_id = p_request_id;
-
-        RAISE NOTICE 'Request % rejected: insufficient stock', 
-            p_request_id;
         RETURN;
     END IF;
 
-    -- ─── Step 6: Lock oldest batch (FIFO) ───
-    -- SELECT FOR UPDATE locks this row so no other
-    -- admin can take from it simultaneously
-    SELECT stock_id
-    INTO v_stock_id
-    FROM blood_stock
-    WHERE blood_group = v_blood_group
-    AND component_type = v_component_type
-    AND available_units > 0
-    ORDER BY expiry_date ASC              -- oldest batch first (FIFO)
-    LIMIT 1
-    FOR UPDATE;                           -- row level lock
+    -- FIFO LOOP: Subtract from oldest batches first
+    FOR v_batch IN 
+        SELECT stock_id, available_units 
+        FROM blood_stock 
+        WHERE blood_group = v_blood_group AND component_type = v_component_type AND available_units > 0
+        ORDER BY expiry_date ASC, added_date ASC
+        FOR UPDATE
+    LOOP
+        EXIT WHEN v_quantity_needed <= 0;
 
-    -- ─── Step 7: Subtract units from stock ───
-    UPDATE blood_stock
-    SET available_units = available_units - v_quantity
-    WHERE stock_id = v_stock_id;
-    -- Trigger 4 fires here automatically
-    -- updating last_updated timestamp
+        v_take := LEAST(v_batch.available_units, v_quantity_needed);
 
-    -- ─── Step 8: Update request to APPROVED ───
-    UPDATE blood_request
-    SET status = 'APPROVED'
-    WHERE request_id = p_request_id;
+        UPDATE blood_stock 
+        SET available_units = available_units - v_take 
+        WHERE stock_id = v_batch.stock_id;
 
-    -- ─── Step 9: Log to stock_transaction ───
-    INSERT INTO stock_transaction
-        (stock_id, admin_id, request_id, quantity, action)
-    VALUES
-        (v_stock_id, p_admin_id, p_request_id, 
-         v_quantity, 'REQUEST_FULFILLED');
+        INSERT INTO stock_transaction (stock_id, admin_id, request_id, quantity, action)
+        VALUES (v_batch.stock_id, p_admin_id, p_request_id, v_take, 'REQUEST_FULFILLED');
 
-    RAISE NOTICE 'Request % approved successfully. % units of % % subtracted from batch %',
-        p_request_id, v_quantity, v_blood_group, 
-        v_component_type, v_stock_id;
+        v_quantity_needed := v_quantity_needed - v_take;
+    END LOOP;
 
--- ─── Error handling: auto rollback on failure ───
-EXCEPTION WHEN OTHERS THEN
+    UPDATE blood_request SET status = 'APPROVED' WHERE request_id = p_request_id;
+
+	EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error approving request %: %', 
         p_request_id, SQLERRM;
     RAISE;
 END;
-
--- procedure for rejecting blood requests by admin
+$$;
+--2) procedure for rejecting blood requests by admin
 CREATE OR REPLACE PROCEDURE reject_blood_request(
     p_request_id  INT,
     p_admin_id    INT,
@@ -149,7 +108,7 @@ END;
 $$;
 
 
--- Procedure to add new blood stock by admin
+--3) Procedure to add new blood stock by admin
 CREATE OR REPLACE PROCEDURE add_blood_stock(
     p_blood_group    blood_group_type,
     p_component_type component_type,
@@ -195,7 +154,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- Procedure to manually adjust stock units by admin
+--4) Procedure to manually adjust stock units by admin
 CREATE OR REPLACE PROCEDURE manual_stock_adjustment(
     p_stock_id   INT,
     p_new_units  DECIMAL(5,2),

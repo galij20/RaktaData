@@ -1,4 +1,4 @@
--- View to list urgent blood requests along with their fulfillment status based on current blood stock
+--1) View to list urgent blood requests along with their fulfillment status based on current blood stock
 create or replace view urgent_fulfillment_list as
 select
 	br.request_id,
@@ -43,7 +43,7 @@ select
 		br.request_date asc;
 
 
--- View emergency_donor_list to quickly identify eligible donors for urgent requests
+--2) View emergency_donor_list to quickly identify eligible donors for urgent requests
 CREATE OR REPLACE VIEW emergency_donor_list AS
 SELECT
     d.donor_id,
@@ -58,7 +58,7 @@ FROM donor d
 WHERE d.eligibility_status = TRUE
 ORDER BY d.donor_blood_group, d.donor_name;
 
--- view to summarize blood stock transactions for audit purposes
+--3) view to summarize blood stock transactions for audit purposes
 CREATE OR REPLACE VIEW stock_audit_summary AS
 SELECT
     st.transaction_id,
@@ -104,7 +104,7 @@ LEFT JOIN customer c
 ORDER BY st.transaction_date DESC;    
 
 
--- view to provide a summary of blood stock levels by blood group and component type for dashboard display
+--4) view to provide a summary of blood stock levels by blood group and component type for dashboard display
 CREATE OR REPLACE VIEW blood_availability_summary AS
 SELECT
     bs.blood_group,
@@ -125,7 +125,7 @@ FROM blood_stock bs
 GROUP BY bs.blood_group, bs.component_type
 ORDER BY bs.blood_group, bs.component_type;
 
---view to see donors history of donations 
+--5) view to see donors history of donations 
 CREATE OR REPLACE VIEW donor_donation_history AS
 SELECT
     d.donor_id,
@@ -167,7 +167,7 @@ INNER JOIN donation dn                 -- INNER: only donors with donations
     ON d.donor_id = dn.donor_id
 ORDER BY d.donor_id, dn.donation_date DESC;
 
--- view to provide batch-level details of blood stock for inventory management
+--6) view to provide batch-level details of blood stock for inventory management
 CREATE OR REPLACE VIEW blood_stock_batch_details AS
 SELECT
     bs.stock_id,
@@ -193,3 +193,9 @@ SELECT
 FROM blood_stock bs
 ORDER BY bs.blood_group, bs.component_type, bs.expiry_date ASC;
 
+--7) view for active stock inventory that hides batches with zero available units to reduce clutter for admins
+
+CREATE OR REPLACE VIEW active_stock_inventory AS
+SELECT * FROM blood_stock 
+WHERE available_units > 0  -- This hides the "zeros" you hate!
+ORDER BY expiry_date ASC;
