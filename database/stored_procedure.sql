@@ -14,19 +14,18 @@ DECLARE
     v_batch           RECORD;
     v_take            DECIMAL(5,2);
 BEGIN
-    -- Get request details
     SELECT blood_group, component_type, quantity, status
     INTO v_blood_group, v_component_type, v_quantity_needed, v_request_status
     FROM blood_request WHERE request_id = p_request_id;
 
-    -- Basic validation
     IF NOT FOUND THEN RAISE EXCEPTION 'Request not found'; END IF;
     IF v_request_status != 'PENDING' THEN RAISE EXCEPTION 'Request already processed'; END IF;
 
-    -- Check if total sum across all batches is enough
     SELECT COALESCE(SUM(available_units), 0) INTO v_total_available
     FROM blood_stock
-    WHERE blood_group = v_blood_group AND component_type = v_component_type;
+    WHERE blood_group = v_blood_group
+    AND component_type = v_component_type
+    AND expiry_date >= CURRENT_DATE;        -- ignore expired batches
 
     IF v_total_available < v_quantity_needed THEN
         UPDATE blood_request SET status = 'REJECTED', rejected_reason = 'Insufficient stock'
@@ -34,33 +33,30 @@ BEGIN
         RETURN;
     END IF;
 
-    -- FIFO LOOP: Subtract from oldest batches first
-    FOR v_batch IN 
-        SELECT stock_id, available_units 
-        FROM blood_stock 
-        WHERE blood_group = v_blood_group AND component_type = v_component_type AND available_units > 0
+    FOR v_batch IN
+        SELECT stock_id, available_units
+        FROM blood_stock
+        WHERE blood_group = v_blood_group
+        AND component_type = v_component_type
+        AND available_units > 0
+        AND expiry_date >= CURRENT_DATE     -- ignore expired batches
         ORDER BY expiry_date ASC, added_date ASC
         FOR UPDATE
     LOOP
         EXIT WHEN v_quantity_needed <= 0;
-
         v_take := LEAST(v_batch.available_units, v_quantity_needed);
-
-        UPDATE blood_stock 
-        SET available_units = available_units - v_take 
+        UPDATE blood_stock
+        SET available_units = available_units - v_take
         WHERE stock_id = v_batch.stock_id;
-
         INSERT INTO stock_transaction (stock_id, admin_id, request_id, quantity, action)
         VALUES (v_batch.stock_id, p_admin_id, p_request_id, v_take, 'REQUEST_FULFILLED');
-
         v_quantity_needed := v_quantity_needed - v_take;
     END LOOP;
 
     UPDATE blood_request SET status = 'APPROVED' WHERE request_id = p_request_id;
 
-	EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Error approving request %: %', 
-        p_request_id, SQLERRM;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Error approving request %: %', p_request_id, SQLERRM;
     RAISE;
 END;
 $$;

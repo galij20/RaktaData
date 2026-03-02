@@ -53,7 +53,8 @@ BEGIN
     INTO v_total_available
     FROM blood_stock
     WHERE blood_group = NEW.blood_group
-    AND component_type = NEW.component_type;
+    AND component_type = NEW.component_type
+    AND expiry_date >= CURRENT_DATE;        -- ignore expired batches
 
 -- If total available < requested quantity, auto-reject
     IF v_total_available < NEW.quantity THEN

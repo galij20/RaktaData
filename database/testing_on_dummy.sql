@@ -11,30 +11,30 @@
 -- SELECT donor_id, donor_name, eligibility_status,
 --        last_donation_date FROM donor;
 -- Expected:
--- Donors 1-8: eligibility_status = TRUE ✅
--- Donors 10-11: eligibility_status = FALSE ✅
+-- Donors 1-8: eligibility_status = TRUE 
+-- Donors 10-11: eligibility_status = FALSE 
 
 -- 3. Check blood stock expiry dates (Trigger 2)
 -- SELECT stock_id, blood_group, component_type,
 --        available_units, added_date, expiry_date
 -- FROM blood_stock ORDER BY stock_id;
 -- Expected:
--- Platelets: expiry = today + 5 days ✅
--- Whole Blood: expiry = today + 35 days ✅
--- PRBC: expiry = today + 35 days ✅
--- FFP: expiry = today + 365 days ✅
--- stock_id 14: expiry = yesterday (for expiry test) ✅
+-- Platelets: expiry = today + 5 days 
+-- Whole Blood: expiry = today + 35 days 
+-- PRBC: expiry = today + 35 days 
+-- FFP: expiry = today + 365 days 
+-- stock_id 14: expiry = yesterday (for expiry test) 
 
 -- 4. Check blood requests (Trigger 3)
 -- SELECT request_id, blood_group, component_type,
 --        quantity, status, rejected_reason
 -- FROM blood_request;
 -- Expected:
--- request_id 1: PENDING ✅
--- request_id 2: PENDING ✅
--- request_id 3: REJECTED (Insufficient stock) ✅
--- request_id 4: PENDING ✅
--- request_id 5: PENDING ✅
+-- request_id 1: PENDING 
+-- request_id 2: PENDING 
+-- request_id 3: REJECTED (Insufficient stock) 
+-- request_id 4: PENDING 
+-- request_id 5: PENDING 
 
 -- 5. Check views
 -- SELECT * FROM urgent_fulfillment_list;
@@ -84,7 +84,7 @@
 --
 -- SELECT stock_id, available_units, last_updated
 -- FROM blood_stock WHERE stock_id = 1;
--- Expected: last_updated = current timestamp ✅
+-- Expected: last_updated = current timestamp 
 
 
 -- ============================================
@@ -98,14 +98,14 @@
 --
 -- Verify:
 -- SELECT request_id, status FROM blood_request WHERE request_id = 1;
--- Expected: APPROVED ✅
+-- Expected: APPROVED 
 --
 -- SELECT * FROM blood_availability_summary
 -- WHERE blood_group = 'O+' AND component_type = 'Whole Blood';
--- Expected: total_available_units = 10 (12 - 2) ✅
+-- Expected: total_available_units = 10 (12 - 2) 
 --
 -- SELECT * FROM stock_audit_summary LIMIT 1;
--- Expected: action = REQUEST_FULFILLED ✅
+-- Expected: action = REQUEST_FULFILLED 
 
 -- ─────────────────────────────────────────────
 
@@ -116,7 +116,7 @@
 -- Verify:
 -- SELECT request_id, status, rejected_reason
 -- FROM blood_request WHERE request_id = 4;
--- Expected: REJECTED, reason = 'Patient condition changed' ✅
+-- Expected: REJECTED, reason = 'Patient condition changed' 
 
 -- ─────────────────────────────────────────────
 
@@ -127,10 +127,10 @@
 -- Verify:
 -- SELECT * FROM blood_stock_batch_details
 -- WHERE blood_group = 'B+' AND component_type = 'Platelets';
--- Expected: new batch with expiry = today + 5 days ✅
+-- Expected: new batch with expiry = today + 5 days 
 --
 -- SELECT * FROM stock_audit_summary LIMIT 1;
--- Expected: action = DONATION_ADD ✅
+-- Expected: action = DONATION_ADD 
 
 -- ─────────────────────────────────────────────
 
@@ -141,12 +141,12 @@
 -- Verify:
 -- SELECT stock_id, available_units, last_updated
 -- FROM blood_stock WHERE stock_id = 1;
--- Expected: available_units = 3.00 ✅
---           last_updated = current timestamp ✅
+-- Expected: available_units = 3.00 
+--           last_updated = current timestamp 
 --
 -- SELECT * FROM stock_audit_summary
 -- WHERE action = 'MANUAL_ADJUSTMENT';
--- Expected: new MANUAL_ADJUSTMENT record ✅
+-- Expected: new MANUAL_ADJUSTMENT record 
 
 -- ─────────────────────────────────────────────
 
@@ -157,12 +157,12 @@
 --
 -- Verify blood_stock (row should be deleted):
 -- SELECT * FROM blood_stock WHERE stock_id = 14;
--- Expected: no rows ✅
+-- Expected: no rows 
 --
 -- Verify stock_transaction (should be logged):
 -- SELECT * FROM stock_audit_summary
 -- WHERE action = 'EXPIRED';
--- Expected: EXPIRED record for B- Platelets ✅
+-- Expected: EXPIRED record for B- Platelets 
 
 
 -- ============================================

@@ -126,6 +126,7 @@ SELECT
     END                              AS availability_status
 
 FROM blood_stock bs
+where bs.expiry_date >= CURRENT_DATE  -- only consider non-expired stock
 GROUP BY bs.blood_group, bs.component_type
 ORDER BY bs.blood_group, bs.component_type;
 
@@ -195,8 +196,7 @@ SELECT
         ELSE 'Good'
     END                                  AS expiry_status
 
-FROM blood_stock bs
-WHERE bs.available_units > 0            -- hide zero unit batches
-ORDER BY bs.expiry_date ASC;            -- most urgent firstSELECT * FROM blood_stock 
-WHERE available_units > 0  -- This hides the "zeros" you hate!
+FROM blood_stock bs       
+WHERE available_units > 0 
+and bs.expiry_date >= CURRENT_DATE  -- only show active, non-expired stock
 ORDER BY bs.blood_group, bs.component_type, bs.expiry_date ASC;

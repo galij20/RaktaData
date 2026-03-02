@@ -162,7 +162,7 @@ WHERE stock_id = 14;
 -- Logging past donations by donors.
 -- NOTE: Trigger 1 fires on each INSERT here
 --       updating donor eligibility and
---       last_donation_date automatically ✅
+--       last_donation_date automatically 
 -- We insert donations for donors 1-8 (eligible)
 -- and also for donors 10-11 (already ineligible)
 
@@ -208,7 +208,7 @@ VALUES (10, CURRENT_DATE - INTERVAL '30 days', 1.00, 'A+', 'Whole Blood');
 
 INSERT INTO donation (donor_id, donation_date, quantity, donor_blood_group, component_type)
 VALUES (11, CURRENT_DATE - INTERVAL '45 days', 1.00, 'B+', 'Whole Blood');
--- Trigger sets eligibility = FALSE for donors 10 and 11 ✅
+-- Trigger sets eligibility = FALSE for donors 10 and 11 
 -- They should NOT appear in emergency_donor_list
 
 
@@ -222,40 +222,31 @@ VALUES (11, CURRENT_DATE - INTERVAL '45 days', 1.00, 'B+', 'Whole Blood');
 
 -- Request 1: Fulfillable request (enough stock)
 -- Bir Hospital needs 2 units of O+ Whole Blood
--- Stock: 12 units available → should be PENDING ✅
+-- Stock: 12 units available → should be PENDING 
+-- Request 1: Fulfillable request (enough stock)
 INSERT INTO blood_request
-    (customer_id, blood_group, component_type, quantity, urgency)
-VALUES (1, 'O+', 'Whole Blood', 2.00, 'NORMAL');  -- request_id = 1
+    (customer_id, patient_name, blood_group, component_type, quantity, urgency)
+VALUES (1, 'Krishna Bahadur Thapa', 'O+', 'Whole Blood', 2.00, 'NORMAL');
 
 -- Request 2: Emergency fulfillable request
--- Teaching Hospital needs 3 units of A+ Whole Blood
--- Stock: 5 units available → should be PENDING ✅
 INSERT INTO blood_request
-    (customer_id, blood_group, component_type, quantity, urgency)
-VALUES (2, 'A+', 'Whole Blood', 3.00, 'EMERGENCY'); -- request_id = 2
+    (customer_id, patient_name, blood_group, component_type, quantity, urgency)
+VALUES (2, 'Sunita Karmacharya', 'A+', 'Whole Blood', 3.00, 'EMERGENCY');
 
--- Request 3: Auto-reject test
--- Patan Hospital needs 5 units of A- PRBC
--- Stock: only 1 unit available → should be AUTO REJECTED ✅
--- Trigger 3 fires and sets status = REJECTED
+-- Request 3: Auto-reject test (insufficient stock)
 INSERT INTO blood_request
-    (customer_id, blood_group, component_type, quantity, urgency)
-VALUES (3, 'A-', 'PRBC', 5.00, 'NORMAL');          -- request_id = 3
+    (customer_id, patient_name, blood_group, component_type, quantity, urgency)
+VALUES (3, 'Ramesh Pradhan', 'A-', 'PRBC', 5.00, 'NORMAL');
 
 -- Request 4: Another fulfillable request
--- Bir Hospital needs 1 unit of AB+ FFP
--- Stock: 15 units available → should be PENDING ✅
 INSERT INTO blood_request
-    (customer_id, blood_group, component_type, quantity, urgency)
-VALUES (1, 'AB+', 'FFP', 1.00, 'NORMAL');           -- request_id = 4
+    (customer_id, patient_name, blood_group, component_type, quantity, urgency)
+VALUES (1, 'Mina Shrestha', 'AB+', 'FFP', 1.00, 'NORMAL');
 
 -- Request 5: Emergency low stock request
--- Teaching Hospital needs 2 units of O- Whole Blood
--- Stock: only 2 units available → should be PENDING ✅
 INSERT INTO blood_request
-    (customer_id, blood_group, component_type, quantity, urgency)
-VALUES (2, 'O-', 'Whole Blood', 2.00, 'EMERGENCY'); -- request_id = 5
-
+    (customer_id, patient_name, blood_group, component_type, quantity, urgency)
+VALUES (2, 'Bikram Rai', 'O-', 'Whole Blood', 2.00, 'EMERGENCY');
 
 
 
