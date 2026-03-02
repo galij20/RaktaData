@@ -4,6 +4,10 @@ select
 	br.request_id,
 	br.request_date,
 	br.urgency,
+    case br.urgency
+        when 'EMERGENCY' then 'EMERGENCY'
+        else 'NORMAL'
+    end as urgency_label,
 	br.status,
 	br.quantity as requested_quantity,
 	br.blood_group,
@@ -167,9 +171,10 @@ INNER JOIN donation dn                 -- INNER: only donors with donations
     ON d.donor_id = dn.donor_id
 ORDER BY d.donor_id, dn.donation_date DESC;
 
---6) view to provide batch-level details of blood stock for inventory management
-CREATE OR REPLACE VIEW blood_stock_batch_details AS
-SELECT
+
+--6) view for active blood stock inventory
+CREATE OR REPLACE VIEW active_stock_inventory AS
+SELECT 
     bs.stock_id,
     bs.blood_group,
     bs.component_type,
@@ -178,24 +183,20 @@ SELECT
     bs.expiry_date,
     bs.last_updated,
 
-    -- Days remaining before expiry
-        bs.expiry_date - CURRENT_DATE   AS days_until_expiry,
+    -- Days remaining
+    bs.expiry_date - CURRENT_DATE        AS days_until_expiry,
+
+    -- Expiry urgency
     CASE
-        WHEN    
-			(bs.expiry_date - CURRENT_DATE) <= 2
+        WHEN (bs.expiry_date - CURRENT_DATE)::INT <= 2
         THEN 'Expiring Soon'
-        WHEN 
-            (bs.expiry_date - CURRENT_DATE) <= 7
+        WHEN (bs.expiry_date - CURRENT_DATE)::INT <= 7
         THEN 'Expiring This Week'
         ELSE 'Good'
-    END                              AS expiry_status
+    END                                  AS expiry_status
 
 FROM blood_stock bs
-ORDER BY bs.blood_group, bs.component_type, bs.expiry_date ASC;
-
---7) view for active stock inventory that hides batches with zero available units to reduce clutter for admins
-
-CREATE OR REPLACE VIEW active_stock_inventory AS
-SELECT * FROM blood_stock 
+WHERE bs.available_units > 0            -- hide zero unit batches
+ORDER BY bs.expiry_date ASC;            -- most urgent firstSELECT * FROM blood_stock 
 WHERE available_units > 0  -- This hides the "zeros" you hate!
-ORDER BY expiry_date ASC;
+ORDER BY bs.blood_group, bs.component_type, bs.expiry_date ASC;
