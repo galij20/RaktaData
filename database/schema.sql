@@ -85,21 +85,27 @@ constraint fk_staff_user
 	on delete cascade
 );
 
-create table donor (
-donor_id serial primary key,
-donor_name varchar(100) not null,
-date_of_birth date not null,
-donor_gender gender_type not null,
-donor_weight decimal(5,2) not null,
-donor_blood_group blood_group_type,
-donor_blood_pressure varchar(10),
-donor_phone_no varchar(15),
-donor_address text,
-last_donation_date date,
-eligibility_status boolean not null default true,
 
-constraint chk_donor_weight
-	check(donor_weight >= 50)
+CREATE TABLE donor (
+    donor_id             SERIAL           PRIMARY KEY,
+    donor_name           VARCHAR(100)     NOT NULL,
+    date_of_birth        DATE             NOT NULL,
+    donor_gender         gender_type      NOT NULL,
+    donor_weight         DECIMAL(5,2)     NOT NULL,
+    donor_blood_group    blood_group_type,                -- nullable
+    donor_blood_pressure VARCHAR(10),                     -- nullable
+    donor_phone_no       VARCHAR(15),                     -- nullable
+    donor_address        TEXT,                            -- nullable
+    hemoglobin           DECIMAL(4,1),                    -- nullable
+    has_diabetes         BOOLEAN,                         -- nullable
+    has_chronic_illness  BOOLEAN,                         -- nullable
+    alcohol_consumption  BOOLEAN,                         -- nullable
+    recent_medication    BOOLEAN,                         -- nullable
+    last_donation_date   DATE,                            -- nullable
+    eligibility_status   BOOLEAN          NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT chk_donor_weight
+        CHECK (donor_weight >= 50)
 );
 
 create table donation (
