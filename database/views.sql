@@ -104,7 +104,7 @@ LEFT JOIN customer c
 ORDER BY st.transaction_date DESC;    
 
 
-
+-- view to provide a summary of blood stock levels by blood group and component type for dashboard display
 CREATE OR REPLACE VIEW blood_availability_summary AS
 SELECT
     bs.blood_group,
@@ -125,7 +125,7 @@ FROM blood_stock bs
 GROUP BY bs.blood_group, bs.component_type
 ORDER BY bs.blood_group, bs.component_type;
 
-
+--view to see donors history of donations 
 CREATE OR REPLACE VIEW donor_donation_history AS
 SELECT
     d.donor_id,
@@ -167,7 +167,7 @@ INNER JOIN donation dn                 -- INNER: only donors with donations
     ON d.donor_id = dn.donor_id
 ORDER BY d.donor_id, dn.donation_date DESC;
 
-
+-- view to provide batch-level details of blood stock for inventory management
 CREATE OR REPLACE VIEW blood_stock_batch_details AS
 SELECT
     bs.stock_id,

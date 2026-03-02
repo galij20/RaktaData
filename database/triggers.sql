@@ -83,3 +83,36 @@ CREATE TRIGGER trg_update_stock_timestamp
 BEFORE UPDATE ON blood_stock
 FOR EACH ROW
 EXECUTE FUNCTION fn_update_stock_timestamp();
+
+
+--5 Trigger to validate that donation blood group matches donor's known blood group
+CREATE OR REPLACE FUNCTION fn_validate_donation_blood_group()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_donor_blood_group blood_group_type;
+BEGIN
+    -- Get donor's actual blood group
+    SELECT donor_blood_group
+    INTO v_donor_blood_group
+    FROM donor
+    WHERE donor_id = NEW.donor_id;
+
+    -- If donor has a known blood group
+    -- and it doesn't match donation blood group
+    -- raise an error
+    IF v_donor_blood_group IS NOT NULL 
+    AND NEW.donor_blood_group IS NOT NULL
+    AND v_donor_blood_group != NEW.donor_blood_group THEN
+        RAISE EXCEPTION 
+            'Blood group mismatch! Donor % has blood group % but donation records %',
+            NEW.donor_id, v_donor_blood_group, NEW.donor_blood_group;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validate_donation_blood_group
+BEFORE INSERT ON donation
+FOR EACH ROW
+EXECUTE FUNCTION fn_validate_donation_blood_group();
