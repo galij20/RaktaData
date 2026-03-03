@@ -53,7 +53,7 @@ create table customer (
  user_id int not null unique,
  name varchar(100) not null,
  date_of_birth date,
- phone_no varchar(15),
+ phone_no varchar(15) not null,
  email varchar(100),
  address text,
 
