@@ -175,4 +175,9 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// for testing purpose only
+router.get("/hash-test", async (req, res) => {
+  const hash = await bcrypt.hash("password123", 10);
+  res.json({ hash });
+});
 module.exports = router;
