@@ -94,7 +94,7 @@ CREATE TABLE donor (
     donor_weight         DECIMAL(5,2)     NOT NULL,
     donor_blood_group    blood_group_type,                -- nullable
     donor_blood_pressure VARCHAR(10),                     -- nullable
-    donor_phone_no       VARCHAR(15),                     -- nullable
+    donor_phone_no       VARCHAR(15) not null,                     -- nullable
     donor_address        TEXT,                            -- nullable
     hemoglobin           DECIMAL(4,1),                    -- nullable
     has_diabetes         BOOLEAN,                         -- nullable

@@ -256,10 +256,18 @@ router.post("/donors", protect(["STAFF"]), async (req, res) => {
 
   try {
     // ─── Step 1: Validate donor required fields ───
-    if (!donor_name || !date_of_birth || !donor_gender || !donor_weight) {
+    if (
+      !donor_name ||
+      !date_of_birth ||
+      !donor_gender ||
+      !donor_weight ||
+      !quantity ||
+      !donor_phone_no
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Name, date of birth, gender and weight are required.",
+        message:
+          "Name, date of birth, gender, weight, quantity and phone number are required.",
       });
     }
 
