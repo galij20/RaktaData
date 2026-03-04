@@ -6,8 +6,6 @@ const protect = require("../middleware/authMiddleware");
 // ─────────────────────────────────────────────
 // GET /api/customer/blood-availability
 // Public route — no login required
-// Search blood availability by blood group
-// and component type
 // ─────────────────────────────────────────────
 router.get("/blood-availability", async (req, res) => {
   const { blood_group, component_type } = req.query;
@@ -28,100 +26,89 @@ router.get("/blood-availability", async (req, res) => {
 
     const result = await pool.query(query, params);
 
-    res.status(200).json({
-      success: true,
-      data: result.rows,
-    });
+    res.status(200).json({ success: true, data: result.rows });
   } catch (err) {
     console.error("Blood availability error:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch blood availability.",
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch blood availability." });
   }
 });
 
 // ─────────────────────────────────────────────
 // POST /api/customer/request
 // Protected — Customer only
-// Submit a blood request
+// Submit a blood request.
+// On insufficient stock → always return eligible
+// donors for that blood group so the customer
+// can contact them directly.
 // ─────────────────────────────────────────────
 router.post("/request", protect(["CUSTOMER"]), async (req, res) => {
-  const { patient_name, blood_group, component_type, quantity, urgency } =
-    req.body;
-
-  // customer_id comes from JWT token — no need to send from frontend
+  const { patient_name, blood_group, component_type, quantity, urgency } = req.body;
   const customer_id = req.user.customer_id;
 
   try {
-    // ─── Step 1: Validate required fields ───
     if (!patient_name || !blood_group || !component_type || !quantity) {
       return res.status(400).json({
         success: false,
-        message:
-          "Patient name, blood group, component and quantity are required.",
+        message: "Patient name, blood group, component and quantity are required.",
       });
     }
 
-    // ─── Step 2: Insert blood request ───
-    // Trigger 3 fires automatically:
-    // if insufficient stock → status = REJECTED
-    // if sufficient stock  → status = PENDING
+    // Insert — Trigger 3 fires automatically:
+    //   insufficient stock → status = REJECTED
+    //   sufficient stock   → status = PENDING
     const result = await pool.query(
       `INSERT INTO blood_request
-            (customer_id, patient_name, blood_group, component_type, quantity, urgency)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *`,
-      [
-        customer_id,
-        patient_name,
-        blood_group,
-        component_type,
-        quantity,
-        urgency || "NORMAL",
-      ],
+        (customer_id, patient_name, blood_group, component_type, quantity, urgency)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *`,
+      [customer_id, patient_name, blood_group, component_type, quantity, urgency || "NORMAL"]
     );
 
     const request = result.rows[0];
 
-    // ─── Step 3: If emergency + rejected (no stock)
-    // fetch emergency donor list ───
-    let emergencyDonors = [];
+    // If stock was insufficient, fetch eligible donors regardless of urgency
+    // so the customer always has a fallback contact list
+    let suggestedDonors = [];
 
-    if (urgency === "EMERGENCY" && request.status === "REJECTED") {
+    if (request.status === "REJECTED") {
       const donorResult = await pool.query(
-        `SELECT * FROM emergency_donor_list
-                WHERE donor_blood_group = $1`,
-        [blood_group],
+        `SELECT
+          donor_id,
+          donor_name,
+          donor_phone_no,
+          donor_blood_group,
+          donor_address,
+          last_donation_date,
+          (CURRENT_DATE - last_donation_date) AS days_since_donation
+         FROM donor
+         WHERE eligibility_status = TRUE
+           AND donor_blood_group = $1
+         ORDER BY last_donation_date ASC NULLS LAST`,
+        [blood_group]
       );
-      emergencyDonors = donorResult.rows;
+      suggestedDonors = donorResult.rows;
     }
 
-    // ─── Step 4: Return response ───
     res.status(201).json({
       success: true,
       message:
         request.status === "APPROVED"
           ? "Request submitted and approved!"
           : request.status === "REJECTED"
-            ? "Request submitted but stock is insufficient."
-            : "Request submitted successfully! Pending approval.",
+            ? "Insufficient stock — here are eligible donors you can contact directly."
+            : "Request submitted successfully! Pending admin approval.",
       data: request,
-      emergencyDonors, // empty array if not emergency or stock available
+      suggestedDonors, // populated only when stock is insufficient
     });
   } catch (err) {
     console.error("Blood request error:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to submit blood request.",
-    });
+    res.status(500).json({ success: false, message: "Failed to submit blood request." });
   }
 });
 
 // ─────────────────────────────────────────────
 // GET /api/customer/requests
 // Protected — Customer only
-// View own blood requests history
 // ─────────────────────────────────────────────
 router.get("/requests", protect(["CUSTOMER"]), async (req, res) => {
   const customer_id = req.user.customer_id;
@@ -129,31 +116,18 @@ router.get("/requests", protect(["CUSTOMER"]), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
-                request_id,
-                patient_name,
-                blood_group,
-                component_type,
-                quantity,
-                urgency,
-                status,
-                rejected_reason,
-                request_date
-            FROM blood_request
-            WHERE customer_id = $1
-            ORDER BY request_date DESC`,
-      [customer_id],
+        request_id, patient_name, blood_group, component_type,
+        quantity, urgency, status, rejected_reason, request_date
+       FROM blood_request
+       WHERE customer_id = $1
+       ORDER BY request_date DESC`,
+      [customer_id]
     );
 
-    res.status(200).json({
-      success: true,
-      data: result.rows,
-    });
+    res.status(200).json({ success: true, data: result.rows });
   } catch (err) {
     console.error("Fetch requests error:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch requests.",
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch requests." });
   }
 });
 
@@ -167,17 +141,17 @@ router.get("/donors", protect(["CUSTOMER"]), async (req, res) => {
 
   try {
     let query = `
-            SELECT
-                donor_id,
-                donor_name,
-                donor_blood_group,
-                donor_phone_no,
-                donor_address,
-                eligibility_status,
-                DATE_PART('year', AGE(CURRENT_DATE, date_of_birth)) AS age,
-                last_donation_date
-            FROM donor
-            WHERE 1=1`;
+      SELECT
+        donor_id,
+        donor_name,
+        donor_blood_group,
+        donor_phone_no,
+        donor_address,
+        eligibility_status,
+        DATE_PART('year', AGE(CURRENT_DATE, date_of_birth)) AS age,
+        last_donation_date
+      FROM donor
+      WHERE 1=1`;
     const params = [];
 
     if (name) {
@@ -205,21 +179,14 @@ router.get("/donors", protect(["CUSTOMER"]), async (req, res) => {
       query += ` AND DATE_PART('year', AGE(CURRENT_DATE, date_of_birth)) <= $${params.length}`;
     }
 
-    query += ` ORDER BY donor_name ASC`;
+    query += ` ORDER BY eligibility_status DESC, donor_name ASC`;
 
     const result = await pool.query(query, params);
 
-    res.status(200).json({
-      success: true,
-      count: result.rows.length,
-      data: result.rows,
-    });
+    res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (err) {
     console.error("Donor search error:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch donors.",
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch donors." });
   }
 });
 
