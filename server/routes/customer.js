@@ -53,6 +53,25 @@ router.post("/request", protect(["CUSTOMER"]), async (req, res) => {
       });
     }
 
+    // Duplicate guard — only columns guaranteed to exist in blood_request
+    // 5-second window catches double-mounts, double-clicks, and network retries
+    const duplicate = await pool.query(
+      `SELECT request_id FROM blood_request
+       WHERE customer_id    = $1
+         AND blood_group    = $2
+         AND component_type = $3
+         AND quantity       = $4::numeric
+         AND request_date  >= NOW() - INTERVAL '5 seconds'
+       LIMIT 1`,
+      [customer_id, blood_group, component_type, quantity]
+    );
+    if (duplicate.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Duplicate request detected. Please wait a moment before submitting again.",
+      });
+    }
+
     // Insert — Trigger 3 fires automatically:
     //   insufficient stock → status = REJECTED
     //   sufficient stock   → status = PENDING
@@ -68,15 +87,25 @@ router.post("/request", protect(["CUSTOMER"]), async (req, res) => {
 
     // If stock was insufficient, fetch eligible donors regardless of urgency
     // so the customer always has a fallback contact list
-    let emergencyDonors = [];
+    let suggestedDonors = [];
 
-    if (urgency === "EMERGENCY" && request.status === "REJECTED") {
+    if (request.status === "REJECTED") {
       const donorResult = await pool.query(
-        `SELECT * FROM emergency_donor_list
-                WHERE donor_blood_group = $1`,
-        [blood_group],
+        `SELECT
+          donor_id,
+          donor_name,
+          donor_phone_no,
+          donor_blood_group,
+          donor_address,
+          last_donation_date,
+          (CURRENT_DATE - last_donation_date) AS days_since_donation
+         FROM donor
+         WHERE eligibility_status = TRUE
+           AND donor_blood_group = $1
+         ORDER BY last_donation_date ASC NULLS LAST`,
+        [blood_group]
       );
-      emergencyDonors = donorResult.rows;
+      suggestedDonors = donorResult.rows;
     }
 
     res.status(201).json({
@@ -85,10 +114,10 @@ router.post("/request", protect(["CUSTOMER"]), async (req, res) => {
         request.status === "APPROVED"
           ? "Request submitted and approved!"
           : request.status === "REJECTED"
-            ? "Insufficient stock — here are eligible donors you can contact directly."
-            : "Request submitted successfully! Pending admin approval.",
+          ? "Insufficient stock — here are eligible donors you can contact directly."
+          : "Request submitted successfully! Pending admin approval.",
       data: request,
-      emergencyDonors, 
+      suggestedDonors, // populated only when stock is insufficient
     });
   } catch (err) {
     console.error("Blood request error:", err.message);

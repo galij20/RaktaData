@@ -5,6 +5,9 @@ import GlobalStyle from "../../styles/GlobalStyle";
 import { customerGetRequests, customerSubmitRequest, customerGetBloodAvailability, customerGetDonors } from "../../api";
 import TopBar from "../../components/TopBar";
 
+// Module-level submit lock — survives re-renders AND remounts
+let _requestInFlight = false;
+
 const AVATAR_COLORS = ["#DC2626","#7C3AED","#059669","#D97706","#2563EB","#DB2777","#0891B2","#65A30D"];
 
 const CustomerPanel = ({ user, onLogout, dark, onToggleTheme }) => {
@@ -80,11 +83,16 @@ const CustomerPanel = ({ user, onLogout, dark, onToggleTheme }) => {
       showToast("Please fill all required fields", "error");
       return;
     }
+    // Module-level lock — cannot be reset by re-renders or remounts
+    if (_requestInFlight) return;
+    _requestInFlight = true;
     setSubmitting(true);
     try {
       const res = await customerSubmitRequest(form);
-      loadRequests();
       if (res.data?.status === "REJECTED") {
+        // Navigate away FIRST, then update state
+        setForm(emptyForm);
+        setTab("donors");
         setDonorContext({
           bloodGroup:      form.blood_group,
           componentType:   form.component_type,
@@ -94,16 +102,20 @@ const CustomerPanel = ({ user, onLogout, dark, onToggleTheme }) => {
         setDonorBgFilter(form.blood_group);
         setDonorEligFilter("true");
         setDonors(res.suggestedDonors || []);
-        setForm(emptyForm);
-        setTab("donors");
+        loadRequests();
       } else {
-        showToast(res.message || "Request submitted!");
+        // Navigate away FIRST before any other state updates
         setForm(emptyForm);
         setTab("requests");
+        showToast(res.message || "Request submitted!");
+        loadRequests();
       }
     } catch(e) {
-      showToast(e.message, "error");
+      if (!e.message?.includes("Duplicate")) {
+        showToast(e.message, "error");
+      }
     } finally {
+      _requestInFlight = false;
       setSubmitting(false);
     }
   };
@@ -295,7 +307,7 @@ const CustomerPanel = ({ user, onLogout, dark, onToggleTheme }) => {
                       const isEmer   = opt.val === "EMERGENCY";
                       const activeColor = isEmer ? "var(--red)" : "var(--green)";
                       return (
-                        <label key={opt.val} onClick={() => setForm({...form, urgency:opt.val})} style={{
+                        <div key={opt.val} onClick={() => setForm({...form, urgency:opt.val})} style={{
                           display:"flex", alignItems:"flex-start", gap:"10px",
                           padding:"14px 16px", borderRadius:"8px", cursor:"pointer",
                           border:`2px solid ${active ? activeColor : "var(--border-md)"}`,
@@ -320,7 +332,7 @@ const CustomerPanel = ({ user, onLogout, dark, onToggleTheme }) => {
                             </div>
                             <div style={{fontSize:"0.75rem",color:"var(--text-3)",marginTop:"2px"}}>{opt.sub}</div>
                           </div>
-                        </label>
+                        </div>
                       );
                     })}
                   </div>
