@@ -68,25 +68,15 @@ router.post("/request", protect(["CUSTOMER"]), async (req, res) => {
 
     // If stock was insufficient, fetch eligible donors regardless of urgency
     // so the customer always has a fallback contact list
-    let suggestedDonors = [];
+    let emergencyDonors = [];
 
-    if (request.status === "REJECTED") {
+    if (urgency === "EMERGENCY" && request.status === "REJECTED") {
       const donorResult = await pool.query(
-        `SELECT
-          donor_id,
-          donor_name,
-          donor_phone_no,
-          donor_blood_group,
-          donor_address,
-          last_donation_date,
-          (CURRENT_DATE - last_donation_date) AS days_since_donation
-         FROM donor
-         WHERE eligibility_status = TRUE
-           AND donor_blood_group = $1
-         ORDER BY last_donation_date ASC NULLS LAST`,
-        [blood_group]
+        `SELECT * FROM emergency_donor_list
+                WHERE donor_blood_group = $1`,
+        [blood_group],
       );
-      suggestedDonors = donorResult.rows;
+      emergencyDonors = donorResult.rows;
     }
 
     res.status(201).json({
