@@ -410,6 +410,10 @@ const GlobalStyle = () => (
       .pub-nav { padding:0 20px; }
       .pub-nav-links { display:none; }
     }
+    ::placeholder {
+    color: var(--text-3);
+    opacity: 0.5;
+}
   `}</style>
 );
 
