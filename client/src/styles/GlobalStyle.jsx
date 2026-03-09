@@ -88,8 +88,35 @@ const GlobalStyle = () => (
     .form-group { display:flex; flex-direction:column; gap:6px; }
     .form-label { font-size:0.75rem; font-weight:600; color:var(--text-3); letter-spacing:0.06em; text-transform:uppercase; }
     .form-label .req { color: var(--red); margin-left:2px; }
-    .form-input { width:100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-md); font-size:0.875rem; color: var(--text); background: var(--surface); transition: border-color 0.15s; }
+    .reg-page-bg .form-label { color: #94A3B8; }
+    .reg-page-bg .form-input {
+      background: #0D0F18;
+      border-color: #2A2D3A;
+      color: #F1F5F9;
+      color-scheme: dark;
+      -webkit-text-fill-color: #F1F5F9;
+    }
+    .reg-page-bg .form-input::placeholder { color: #475569; }
+    .reg-page-bg .form-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
+    .form-input {
+      width: 100%; padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border-md);
+      font-size: 0.875rem;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.15s;
+      color-scheme: light;
+      -webkit-text-fill-color: var(--text);
+    }
     .form-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,0.08); }
+    .form-input:-webkit-autofill,
+    .form-input:-webkit-autofill:hover,
+    .form-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+      -webkit-text-fill-color: var(--text);
+      caret-color: var(--text);
+    }
     .form-input::placeholder { color: var(--text-4); }
     select.form-input { cursor:pointer; }
 
@@ -157,12 +184,12 @@ const GlobalStyle = () => (
     }
     .top-bar-toggle {
       display: flex; align-items: center; gap: 7px;
-      padding: 6px 14px; border-radius: 20px;
-      background: var(--border); border: 1px solid var(--border-md);
-      color: var(--text-2); font-size: 0.82rem; font-weight: 600;
+      padding: 6px 16px; border-radius: 20px;
+      background: #1E2130; border: 1px solid #2A2D3A;
+      color: #CBD5E1; font-size: 0.82rem; font-weight: 600;
       cursor: pointer; transition: all 0.15s;
     }
-    .top-bar-toggle:hover { background: var(--border-md); color: var(--text); }
+    .top-bar-toggle:hover { background: #252838; color: #F1F5F9; }
 
     /* Table */
     .table-wrap { overflow-x:auto; }
@@ -305,6 +332,20 @@ const GlobalStyle = () => (
     [data-theme="dark"] .badge-blue { background: rgba(96,165,250,0.15); color: #60A5FA; }
 
     /* Form inputs */
+    [data-theme="dark"] .form-input {
+      background: #0D0F18;
+      border-color: var(--border-md);
+      color: var(--text);
+      color-scheme: dark;
+      -webkit-text-fill-color: var(--text);
+    }
+    [data-theme="dark"] .form-input:-webkit-autofill,
+    [data-theme="dark"] .form-input:-webkit-autofill:hover,
+    [data-theme="dark"] .form-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #0D0F18 inset;
+      -webkit-text-fill-color: var(--text);
+      caret-color: var(--text);
+    }
     [data-theme="dark"] .form-input:focus {
       border-color: var(--red);
       box-shadow: 0 0 0 3px rgba(248,113,113,0.1);
@@ -330,6 +371,12 @@ const GlobalStyle = () => (
     }
 
     /* Section decorators */
+    .reg-page-bg {
+      background: #1A1C24;
+    }
+    [data-theme="dark"] .reg-page-bg {
+      background: #0A0C14;
+    }
     [data-theme="dark"] .reg-section {
       border-bottom-color: rgba(248,113,113,0.2);
     }
@@ -344,6 +391,7 @@ const GlobalStyle = () => (
       border-bottom-color: var(--border);
     }
     [data-theme="dark"] .top-bar-toggle {
+      background: #252838; border-color: #353849; color: #CBD5E1;
       background: var(--border);
       border-color: var(--border-md);
     }
@@ -352,15 +400,7 @@ const GlobalStyle = () => (
     /* Scrollbar */
     [data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--border-md); }
 
-        /* Dark mode toggle button */
-    .theme-toggle {
-      display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; border-radius: 8px;
-      background: var(--border); color: var(--text-3);
-      border: 1px solid var(--border-md); cursor: pointer;
-      transition: all 0.15s; flex-shrink: 0;
-    }
-    .theme-toggle:hover { background: var(--border-md); color: var(--text); }
+
 
     @media (max-width: 768px) {
       .hero-section { padding: 48px 24px; }

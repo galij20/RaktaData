@@ -142,7 +142,7 @@ export default function App() {
     "Home":     <HomePage setPage={setPage} onLogin={() => setShowLogin(true)} />,
     "About":    <AboutPage setPage={setPage} />,
     "Contact":  <ContactPage />,
-    "Register": <RegisterPage setPage={setPage} />,
+    "Register": <RegisterPage setPage={setPage} onLogin={() => setShowLogin(true)} dark={dark} onToggleTheme={toggleTheme} />,
   };
 
   return (

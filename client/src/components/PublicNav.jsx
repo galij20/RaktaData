@@ -19,8 +19,8 @@ const PublicNav = ({ page, setPage, onLogin, dark, onToggleTheme }) => {
         </button>
       </div>
       <div className="pub-nav-right">
-        <button className="theme-toggle" onClick={onToggleTheme} title={dark ? "Switch to light mode" : "Switch to dark mode"}>
-          {dark ? "☀️" : "🌙"}
+        <button className="top-bar-toggle" onClick={onToggleTheme}>
+          {dark ? "☀️ Light" : "🌙 Dark"}
         </button>
         <button className="btn btn-secondary" style={{marginRight:"4px",fontSize:"0.85rem",padding:"8px 16px"}} onClick={() => setPage("Register")}>Register</button>
         <button className="btn-login" onClick={onLogin}>Log In</button>

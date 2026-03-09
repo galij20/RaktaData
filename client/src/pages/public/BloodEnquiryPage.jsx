@@ -50,6 +50,9 @@ const BloodEnquiryPage = ({ onLogin }) => {
   };
 
   const isEmergency = form.urgency === "EMERGENCY";
+  const filteredStockResults = (stockResults || [])
+    .filter(s => searchBg === "Any" || s.blood_group === searchBg)
+    .filter(s => !searchUnits || parseFloat(s.total_available_units) >= parseFloat(searchUnits));
 
   return (
     <div className="fade-in">
@@ -265,11 +268,9 @@ const BloodEnquiryPage = ({ onLogin }) => {
 
               {stockResults && (
                 <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-                  {stockResults.length === 0
+                  {filteredStockResults.length === 0
                     ? <p style={{fontSize:"0.82rem",color:"var(--text-3)"}}>No stock found.</p>
-                    : stockResults
-                        .filter(s => searchBg === "Any" || s.blood_group === searchBg)
-                        .filter(s => !searchUnits || parseFloat(s.total_available_units) >= parseFloat(searchUnits))
+                    : filteredStockResults
                         .map((s,i) => (
                           <div key={i} style={{
                             display:"flex",alignItems:"center",justifyContent:"space-between",
