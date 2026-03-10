@@ -1,7 +1,7 @@
 import Logo from "./Logo";
 import Icon from "./Icons";
 
-const PublicNav = ({ page, setPage, onLogin, dark, onToggleTheme }) => {
+const PublicNav = ({ page, setPage, onLogin, onRegister, dark, onToggleTheme }) => {
   const publicLinks = ["Home", "About", "Contact"];
   const linkMap = {};
 
@@ -22,7 +22,13 @@ const PublicNav = ({ page, setPage, onLogin, dark, onToggleTheme }) => {
         <button className="top-bar-toggle" onClick={onToggleTheme}>
           {dark ? "☀️ Light" : "🌙 Dark"}
         </button>
-        <button className="btn btn-secondary" style={{marginRight:"4px",fontSize:"0.85rem",padding:"8px 16px"}} onClick={() => setPage("Register")}>Register</button>
+        <button
+          className="btn btn-secondary"
+          style={{marginRight:"4px",fontSize:"0.85rem",padding:"8px 16px"}}
+          onClick={() => (onRegister ? onRegister() : setPage("Register"))}
+        >
+          Register
+        </button>
         <button className="btn-login" onClick={onLogin}>Log In</button>
       </div>
     </nav>
