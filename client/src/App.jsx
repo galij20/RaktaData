@@ -72,6 +72,7 @@ export default function App() {
   const [user, setUser]         = useState(() => restoreUser());
   const [page, setPage]         = useState(() => restoreUserPage(restoreUser()));
   const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
 
   const handleLogin = (acc) => {
     setUser(acc);
@@ -86,6 +87,9 @@ export default function App() {
     setUser(null);
     setPage("Home");
   };
+
+  const openRegister = () => setShowRegister(true);
+  const closeRegister = () => setShowRegister(false);
 
   // ── Customer ──────────────────────────────────────────────────────────────
   if (user?.role === "CUSTOMER") {
@@ -138,21 +142,36 @@ export default function App() {
   }
 
   // ── Public (not logged in) ────────────────────────────────────────────────
+  const publicSetPage = (nextPage) => {
+    if (nextPage === "Register") { openRegister(); return; }
+    setPage(nextPage);
+  };
+
   const publicPages = {
-    "Home":     <HomePage setPage={setPage} onLogin={() => setShowLogin(true)} />,
-    "About":    <AboutPage setPage={setPage} />,
+    "Home":     <HomePage setPage={publicSetPage} onLogin={() => setShowLogin(true)} />,
+    "About":    <AboutPage setPage={publicSetPage} />,
     "Contact":  <ContactPage />,
-    "Register": <RegisterPage setPage={setPage} onLogin={() => setShowLogin(true)} dark={dark} onToggleTheme={toggleTheme} />,
   };
 
   return (
     <>
       <GlobalStyle />
-      {page !== "Register" && (
-        <PublicNav page={page} setPage={setPage} onLogin={() => setShowLogin(true)} dark={dark} onToggleTheme={toggleTheme} />
-      )}
+      <PublicNav
+        page={page}
+        setPage={publicSetPage}
+        onLogin={() => setShowLogin(true)}
+        onRegister={openRegister}
+        dark={dark}
+        onToggleTheme={toggleTheme}
+      />
       <main>{publicPages[page] || publicPages["Home"]}</main>
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={handleLogin} />}
+      {showRegister && (
+        <RegisterPage
+          onClose={closeRegister}
+          onLogin={() => { closeRegister(); setShowLogin(true); }}
+        />
+      )}
     </>
   );
 }
