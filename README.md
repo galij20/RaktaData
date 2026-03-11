@@ -182,7 +182,9 @@ cd client && npm run dev
 Required environment variables in Railway:
 
 ```env
-DB_URL=postgresql://...
+DATABASE_URL=postgresql://...
+DB_URL=postgresql://... # optional (app prefers DATABASE_URL)
+DB_SSL=false
 JWT_SECRET=replace_with_long_random_value
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
