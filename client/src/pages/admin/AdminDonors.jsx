@@ -112,6 +112,7 @@ const AdminDonors = () => {
               <div className="form-group">
                 <label className="form-label">Blood Group</label>
                 <select className="form-input" value={editForm.donor_blood_group||""} onChange={e=>setEditForm({...editForm,donor_blood_group:e.target.value})}>
+                  <option value="" disabled>Select blood group</option>
                   {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b=><option key={b}>{b}</option>)}
                 </select>
               </div>
