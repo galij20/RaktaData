@@ -145,34 +145,68 @@ VALUES (
 
 ### 5. Install dependencies
 
-From the project root, install all dependencies at once:
-
 ```bash
-npm run install:all
-```
-
-Or install each manually:
-
-```bash
-npm install          # root (concurrently)
 cd client && npm install
 cd ../server && npm install
 ```
 
 ### 6. Start development servers
 
-From the project root:
+In separate terminals:
 
 ```bash
-npm run dev
+cd server && npm run dev
 ```
 
-This starts both servers concurrently:
+```bash
+cd client && npm run dev
+```
 
 | Service  | URL                   |
 | -------- | --------------------- |
 | API      | http://localhost:5000 |
 | Frontend | http://localhost:5173 |
+
+---
+
+## Deployment (Railway + Vercel)
+
+### Deploy the API to Railway
+
+1. Create a new Railway service from this GitHub repo.
+2. Set the service **Root Directory** to `server/` (monorepo).
+3. Use these commands:
+   - **Build Command:** `npm ci`
+   - **Start Command:** `npm start`
+
+Required environment variables in Railway:
+
+```env
+DB_URL=postgresql://...
+JWT_SECRET=replace_with_long_random_value
+JWT_EXPIRES_IN=7d
+NODE_ENV=production
+CLIENT_URL=https://<your-vercel-app>.vercel.app
+```
+
+### Initialize the Railway database
+
+Run the SQL files against your Railway Postgres database (in order):
+
+```bash
+psql "$DB_URL" -f database/schema.sql
+psql "$DB_URL" -f database/views.sql
+psql "$DB_URL" -f database/triggers.sql
+psql "$DB_URL" -f database/stored_procedure.sql
+```
+
+### Point the Vercel client to Railway
+
+Set this Vercel environment variable and redeploy:
+
+```env
+VITE_API_URL=https://<your-railway-domain>/api
+```
 
 ---
 

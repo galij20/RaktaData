@@ -1,12 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-cp server/.env.example server/.env
-echo "Copied .env.example to .env. Please review and update the .env file with your actual configuration values."
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-cd server
+if [[ ! -f "$repo_root/server/.env" && -f "$repo_root/server/.env.example" ]]; then
+  cp "$repo_root/server/.env.example" "$repo_root/server/.env"
+  echo "Created server/.env from server/.env.example (edit it before running in production)."
+fi
+
+cd "$repo_root/server"
 npm install
-npm run build
-echo "Server build complete. You can now start the server with 'npm start' or 'npm run dev'."  
-
-
-npm run dev 
+npm run dev
